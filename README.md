@@ -1,159 +1,114 @@
-# Nuvio Forum Issues Bot
+<div align="center">
 
-Syncs Discord forum posts to GitHub issues, and also mirrors GitHub issues back into forum posts with two-way comment mirroring.
+<img src="https://raw.githubusercontent.com/NuvioMedia/NuvioTV/refs/heads/dev/assets/brand/app_logo_wordmark.png" alt="Nuvio" width="320" />
 
-## Features
+<h1>NuvioBot</h1>
 
-| Feature | How it works |
-|---|---|
-| **New post → Issue** | A new GitHub issue is created whenever someone posts in the forum |
-| **Issue-created embed** | The thread gets a rich embed with repo, tags, and quick links |
-| **GitHub issue → Forum post** | New GitHub issues are mirrored into the matching forum automatically |
-| **Edit sync** | If OP edits their post, the GitHub issue body updates automatically |
-| **Tag routing** | `Android TV` → `NuvioMedia/NuvioTV`; `TizenOS` / `WebOS` → `NuvioMedia/NuvioWeb` |
-| **GitHub labels routing** | `bug` → Bugs and Issues forum; `enhancement`/`enchantment`/`help wanted` → Suggestions forum |
-| **Discord → GitHub comments** | Forum replies sync to GitHub comments (Discord-origin echoes are skipped on mirror back) |
-| **GitHub → Discord comments** | New GitHub comments are mirrored into Discord as rich embeds with author/link metadata |
-| **Discord edit -> GitHub edit** | Editing a synced Discord reply updates the linked GitHub comment |
-| **GitHub edit -> Discord edit** | Editing a GitHub comment updates the existing Discord embed and adds an edited-on timestamp |
-| **Resolved close reason** | If the thread has tag `Completed` or `Close`, closing uses GitHub `state_reason=completed` |
-| **Issue close -> Thread close** | If the GitHub issue closes, the linked forum thread is tagged and archived/locked |
+<p>A bridge between Nuvio's Discord community forums and GitHub Issues.</p>
 
-## Hardcoded Presets
+[![Stars](https://img.shields.io/github/stars/NuvioCommunity/bot?style=for-the-badge)](https://github.com/NuvioCommunity/bot/stargazers)
+[![Issues](https://img.shields.io/github/issues/NuvioCommunity/bot?style=for-the-badge)](https://github.com/NuvioCommunity/bot/issues)
+[![License](https://img.shields.io/github/license/NuvioCommunity/bot?style=for-the-badge)](LICENSE)
 
-- Server ID: `1379902184207941732`
-- Suggestions forum ID: `1458552157836935359`
-- Bugs and Issues forum ID: `1458552195904573513`
-- Repo routing: `Android TV` -> `NuvioMedia/NuvioTV`
-- Repo routing: `WebOS` -> `NuvioMedia/NuvioWeb`
-- Repo routing: `TizenOS` -> `NuvioMedia/NuvioWeb`
+<p>Discord intake with GitHub-grade tracking, synchronized end to end.</p>
 
-## Comment Sync Logic
+</div>
 
-```
-New message in forum thread
-├── Bot message?           → ignore
-├── commentSyncLocked?     → ignore
-├── GitHub-origin thread?  → any non-bot reply can sync to GitHub
-└── Discord-origin thread  → only OP replies sync; another user reply locks sync
+NuvioBot keeps community feedback and engineering tracking in sync by mirroring forum discussions to GitHub and GitHub updates back to Discord.
 
-GitHub issue poll loop
-├── New issue in watched repos
-├── Select forum using labels: bug/enhancement(enchantment)/help wanted
-└── Create mirrored forum post + state mapping
+## About
 
-GitHub issue close poll loop
-├── Linked issue becomes closed
-└── Tag forum post as resolved and lock/archive thread
+NuvioBot is a TypeScript bot used by NuvioMedia to connect support and suggestion conversations in Discord with actionable issue tracking in GitHub.
 
-GitHub comment poll loop
-├── New comment detected for tracked issue
-├── Comment is Discord-origin marker? → skip (prevents echo loop)
-├── New comment -> post rich embed reply in Discord thread
-└── Existing comment edited -> update mirrored embed with edited-on marker
+Instead of splitting context across two places, NuvioBot links them into one workflow.
 
-Discord message edit flow
-├── Starter post edited -> update GitHub issue body
-└── Synced reply edited -> update linked GitHub comment
-```
+## Why NuvioMedia Built This
 
-## Setup
+As the Nuvio community grew, most bug reports and feature ideas started in Discord while implementation work happened in GitHub. That created friction:
 
-### 1. Create a Discord bot
+- Reports had to be copied manually from Discord to GitHub.
+- Status updates in GitHub were not visible to forum users.
+- Edited messages and follow-up discussion could drift out of sync.
 
-1. Go to [Discord Developer Portal](https://discord.com/developers/applications) → New Application → Bot
-2. Copy the bot token
-3. Under **Privileged Gateway Intents**, enable **Message Content Intent**
-4. Invite the bot with scopes `bot` and permissions: Read Messages, Send Messages, Read Message History
+NuvioBot solves this by making Discord the user-friendly intake surface and GitHub the engineering source of truth, while keeping both sides synchronized.
 
-### 2. Create a GitHub Personal Access Token
+## What It Does
 
-1. GitHub → Settings → Developer Settings → Personal Access Tokens → Fine-grained tokens
-2. Grant **Issues: Read & Write** on `NuvioMedia/NuvioTV` and `NuvioMedia/NuvioWeb`
+- Creates GitHub issues from new Discord forum posts.
+- Mirrors GitHub issues back into the correct Discord forum.
+- Syncs comments/replies in both directions.
+- Syncs edits for already-linked messages/comments.
+- Mirrors closed issue state back to Discord by resolving and locking related threads.
 
-### 3. Configure
+## How Routing Works
 
-```bash
-cd NuvioBot
-cp .env.example .env
-# Fill in DISCORD_TOKEN and GITHUB_TOKEN
-```
+- Discord tags can route posts to different repositories (configured in `src/config.ts`).
+- GitHub labels can route mirrored issues into the right Discord forum channel.
+- Polling intervals and optional sync limits are configurable via `.env`.
 
-### 4. Run
+## Requirements
+
+- Node.js 18+
+- Discord bot token
+- GitHub token with Issues read/write access on target repositories
+
+## Quick Start
+
+1. Install dependencies:
 
 ```bash
 npm install
-
-# Development (hot reload)
-npm run dev
-
-# Production
-npm run build && npm start
 ```
 
-## Docker (24/7 Hosting)
+2. Create your environment file:
 
-### Build and run with Docker Compose
+```bash
+cp .env.example .env
+```
+
+3. Set required values in `.env`:
+
+- `DISCORD_TOKEN`
+- `GITHUB_TOKEN`
+
+4. Start in development:
+
+```bash
+npm run dev
+```
+
+5. Build and run in production:
+
+```bash
+npm run build
+npm start
+```
+
+## Docker
+
+Run with Docker Compose:
 
 ```bash
 docker compose up -d --build
 ```
 
-### View logs
+View logs:
 
 ```bash
 docker compose logs -f
 ```
 
-### Stop
+Stop:
 
 ```bash
 docker compose down
 ```
 
-Notes:
-- Container restarts automatically with `restart: unless-stopped`.
-- Persistent bot state is stored in `./data` on the host and mounted to `/app/data` in the container.
-- Keep `.env` in the project root with at least `DISCORD_TOKEN` and `GITHUB_TOKEN`.
+## Documentation
 
-## File structure
+Detailed technical and implementation notes are available in `INFO.md`.
 
-```
-forumIssues/
-├── src/
-│   ├── index.ts                   # Bot entry, Discord event wiring
-│   ├── config.ts                  # Presets + tokens + poll settings
-│   ├── github.ts                  # Octokit wrapper (issues/comments read/write)
-│   ├── state.ts                   # Persistent thread→issue state (data/state.json)
-│   ├── utils.ts                   # Tag resolution, body builders
-│   └── handlers/
-│       ├── forumPostCreate.ts     # Discord forum post -> create GitHub issue
-│       ├── forumPostEdit.ts       # Starter message edit -> update issue body
-│       ├── forumPostDelete.ts     # Thread/message delete -> close issue
-│       ├── forumPostStatusClose.ts# Lock/archive/resolved-tag -> close issue
-│       ├── messageCreate.ts       # Forum replies -> GitHub comments
-│       ├── messageEdit.ts         # Edited forum replies -> update GitHub comments
-│       ├── githubReplySync.ts     # GitHub comments <-> Discord reply embeds
-│       └── githubIssueSync.ts     # GitHub issue create/close <-> forum lifecycle
-├── data/
-│   └── state.json                 # Auto-created at runtime
-├── .env.example
-├── .dockerignore
-├── Dockerfile
-├── docker-compose.yml
-├── package.json
-└── tsconfig.json
-```
+## License
 
-## Optional Environment Variables
-
-```bash
-# Optional: if unset, OP replies are unlimited
-MAX_SELF_REPLIES=25
-
-# Poll interval for GitHub -> Discord reply mirroring
-GITHUB_REPLY_POLL_MS=30000
-
-# Poll interval for GitHub issue lifecycle mirroring
-GITHUB_ISSUE_POLL_MS=20000
-```
+Licensed under the GNU General Public License v3.0.
+See `LICENSE` for full text.
