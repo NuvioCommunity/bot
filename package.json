@@ -1,0 +1,22 @@
+{
+  "name": "nuvio-forum-issues",
+  "version": "1.0.0",
+  "description": "Syncs Nuvio Discord forum posts to GitHub issues",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "@octokit/rest": "^21.0.2",
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
